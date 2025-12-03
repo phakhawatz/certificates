@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดเก็บเกียรติบัตรการอบรม</title>
+    
+    <!-- Google Fonts: Kanit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- AOS (Animate On Scroll) CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* --- General Styles --- */
+        :root {
+            --primary-color: #0a4f8a; /* Foster น้ำเงิน */
+            --secondary-color: #f0f8ff;
+            --light-color: #ffffff;
+            --dark-color: #333333;
+            --border-color: #dddddd;
+            --shadow: 0 4px 8px rgba(0,0,0,0.1);
+            --font-family: 'Kanit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: #f4f7f6;
+            color: var(--dark-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, h6, p, label, span, a, div, input, select, textarea, button {
+            font-family: var(--font-family);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        /* --- Header --- */
+        .header {
+            background-color: var(--primary-color);
+            color: var(--light-color);
+            text-align: center;
+            padding: 2rem 1rem;
+            box-shadow: var(--shadow);
+        }
+        .header .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        /* --- Main Content Area --- */
+        main {
+            flex-grow: 1;
+        }
+
+        /* --- Control Bar --- */
+        .control-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .search-container {
+            display: flex;
+            align-items: center;
+            background: var(--light-color);
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            padding: 5px 15px;
+            flex-grow: 1;
+        }
+        .search-container input {
+            border: none;
+            outline: none;
+            padding: 8px;
+            width: 100%;
+        }
+        .btn {
+            background-color: var(--primary-color);
+            color: var(--light-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.3s, transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover {
+            background-color: #063866;
+            transform: translateY(-2px);
+        }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        
+        /* --- Dashboard --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .dashboard-card {
+            background: var(--light-color);
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        .dashboard-card .icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        .dashboard-card h3 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #555;
+        }
+        .dashboard-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .year-selector-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .year-selector-container label {
+            font-weight: 500;
+        }
+        .year-selector-container select {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* --- Certificate List --- */
+        .certificate-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .certificate-card {
+            background: var(--light-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+        .certificate-card:hover {
+            transform: translateY(-5px);
+        }
+        .certificate-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .certificate-card-body {
+            padding: 1rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .certificate-card-body h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        .certificate-card-body p {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+        }
+        .card-actions {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            gap: 0.5rem;
+        }
+        .card-actions button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        
+        /* --- Modal --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+            animation: fadeIn 0.3s;
+        }
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: var(--light-color);
+            margin: auto;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-header h2 {
+            font-size: 1.5rem;
+        }
+        .close {
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+        .close:hover { color: #000; }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* --- Modern File Upload --- */
+        .custom-file-upload {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background-color: #f9f9f9;
+        }
+        .custom-file-upload:hover, .custom-file-upload.drag-over {
+            border-color: var(--primary-color);
+            background-color: var(--secondary-color);
+        }
+        .custom-file-upload .upload-content i {
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .custom-file-upload .upload-content p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .custom-file-upload .file-name {
+            font-weight: 500;
+            color: var(--primary-color);
+            margin-top: 10px;
+        }
+        #imagePreview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 15px;
+            border-radius: 5px;
+            box-shadow: var(--shadow);
+            display: none; /* Hidden by default */
+        }
+        .btn-remove-image {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: none; /* Hidden by default */
+            z-index: 10;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            background-color: var(--primary-color);
+            color: var(--light-color);
+            text-align: center;
+            padding: 1.5rem 1rem;
+            margin-top: auto;
+        }
+        .footer-text {
+            font-size: 0.9rem;
+            color: #b3d1ff;
+        }
+
+        /* --- Loading Overlay --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        #loading-overlay.show {
+            display: flex;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        
+        /* --- Animations --- */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .header p { font-size: 1rem; }
+            .control-bar { flex-direction: column; }
+            .search-container { width: 100%; }
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .certificate-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <img src="https://i.postimg.cc/KcstbwHt/android-chrome-192x192.png" alt="Logo" class="logo">
+        <h1>ระบบจัดเก็บเกียรติบัตรการอบรม</h1>
+        <p>นายภควรรษ รัตนภานพ</p>
+    </header>
+
+    <main class="container">
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="ค้นหาชื่อเกียรติบัตร...">
+            </div>
+            <button class="btn" id="addCertificateBtn">
+                <i class="fas fa-plus"></i> เพิ่มเกียรติบัตร
+            </button>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="year-selector-container">
+            <label for="dashboardYear">สรุปข้อมูลสำหรับปี:</label>
+            <select id="dashboardYear">
+                <!-- Options will be dynamically added here -->
+            </select>
+        </div>
+        <div class="dashboard-grid" data-aos="fade-up">
+            <div class="dashboard-card">
+                <i class="fas fa-certificate icon"></i>
+                <h3>เกียรติบัตรในปีนี้</h3>
+                <p class="number" id="certThisYear">0</p>
+            </div>
+            <div class="dashboard-card">
+                <i class="fas fa-clock icon"></i>
+                <h3>ชั่วโมงอบรมในปีนี้</h3>
+                <p class="number" id="hoursThisYear">0</p>
+            </div>
+            <div class="dashboard-card">
+                <i class="fas fa-file-alt icon"></i>
+                <h3>เกียรติบัตรทั้งหมด</h3>
+                <p class="number" id="certTotal">0</p>
+            </div>
+            <div class="dashboard-card">
+                <i class="fas fa-hourglass-half icon"></i>
+                <h3>ชั่วโมงอบรมทั้งหมด</h3>
+                <p class="number" id="hoursTotal">0</p>
+            </div>
+        </div>
+
+        <!-- Certificate List -->
+        <div id="certificate-list" class="certificate-grid">
+            <!-- Certificate cards will be dynamically inserted here -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-text">Foster 2025 Phakhawat Rattanapanop</p>
+    </footer>
+
+    <!-- Add/Edit Modal -->
+    <div id="certificateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">เพิ่มเกียรติบัตรใหม่</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="certificateForm">
+                <div class="form-group">
+                    <label for="certName">ชื่อเกียรติบัตร</label>
+                    <input type="text" id="certName" required>
+                </div>
+                <div class="form-group">
+                    <label for="agency">หน่วยงานที่จัด</label>
+                    <input type="text" id="agency" required>
+                </div>
+                <div class="form-group">
+                    <label for="dateFrom">วันที่อบรม (ตั้งแต่)</label>
+                    <input type="date" id="dateFrom" required>
+                </div>
+                <div class="form-group">
+                    <label for="dateTo">วันที่อบรม (ถึง)</label>
+                    <input type="date" id="dateTo" required>
+                </div>
+                <div class="form-group">
+                    <label for="hours">จำนวนชั่วโมง</label>
+                    <input type="number" id="hours" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>อัพโหลดรูปเกียรติบัตร (PNG/JPG)</label>
+                    <input type="file" id="imageUpload" accept="image/png, image/jpeg" style="display: none;">
+                    <div class="custom-file-upload" id="customFileUpload">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                            <p>คลิกเพื่ออัปโหลด หรือ ลากไฟล์มาวางที่นี่</p>
+                            <p class="file-name"></p>
+                        </div>
+                        <img id="imagePreview" src="" alt="Image Preview">
+                        <button type="button" class="btn-remove-image" id="btnRemoveImage"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="details">เพิ่มเติม</label>
+                    <textarea id="details"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQ6kUoIvHs4Hb-jdQIPbMP44HwgSP6bLk",
+            authDomain: "certificate-c7a30.firebaseapp.com",
+            projectId: "certificate-c7a30",
+            storageBucket: "certificate-c7a30.firebasestorage.app",
+            messagingSenderId: "469047925350",
+            appId: "1:469047925350:web:704ec9e55ec931d1026ba7",
+            measurementId: "G-0XB5KX6YDZ"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize AOS
+            AOS.init({
+                duration: 800,
+                once: true
+            });
+
+            // DOM Elements
+            const modal = document.getElementById('certificateModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const addBtn = document.getElementById('addCertificateBtn');
+            const closeBtn = document.querySelector('.close');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const form = document.getElementById('certificateForm');
+            const searchInput = document.getElementById('searchInput');
+            const certificateList = document.getElementById('certificate-list');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const dashboardYearSelect = document.getElementById('dashboardYear');
+
+            // Dashboard Elements
+            const certThisYearEl = document.getElementById('certThisYear');
+            const hoursThisYearEl = document.getElementById('hoursThisYear');
+            const certTotalEl = document.getElementById('certTotal');
+            const hoursTotalEl = document.getElementById('hoursTotal');
+            
+            // File Upload Elements
+            const imageUpload = document.getElementById('imageUpload');
+            const customFileUpload = document.getElementById('customFileUpload');
+            const imagePreview = document.getElementById('imagePreview');
+            const btnRemoveImage = document.getElementById('btnRemoveImage');
+            const uploadContent = customFileUpload.querySelector('.upload-content');
+            const fileName = customFileUpload.querySelector('.file-name');
+            
+            let currentEditId = null;
+            let certificates = [];
+
+            // --- Functions ---
+            async function fetchCertificates() {
+                showLoading();
+                try {
+                    const snapshot = await db.collection('certificates').get();
+                    certificates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error("Error fetching certificates: ", error);
+                    Swal.fire('ข้อผิดพลาด!', 'ไม่สามารถดึงข้อมูลได้ในขณะนี้', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            function populateYearDropdown() {
+                const years = new Set();
+                const currentYear = new Date().getFullYear();
+                years.add(currentYear); // Always include current year
+
+                certificates.forEach(cert => {
+                    if (cert.dateFrom) {
+                        years.add(new Date(cert.dateFrom).getFullYear());
+                    }
+                });
+
+                const sortedYears = Array.from(years).sort((a, b) => b - a); // Sort descending
+
+                dashboardYearSelect.innerHTML = '';
+                
+                // Add "All" option
+                const allOption = document.createElement('option');
+                allOption.value = 'all';
+                allOption.textContent = 'ทั้งหมด';
+                dashboardYearSelect.appendChild(allOption);
+
+                sortedYears.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year + 543; // Convert to Buddhist year
+                    dashboardYearSelect.appendChild(option);
+                });
+            }
+
+            function renderCertificates(searchTerm = '', selectedYear = 'all') {
+                certificateList.innerHTML = '';
+                let filteredCerts = certificates.filter(cert => 
+                    cert.name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                if (selectedYear !== 'all') {
+                    filteredCerts = filteredCerts.filter(cert => {
+                        if (!cert.dateFrom) return false;
+                        return new Date(cert.dateFrom).getFullYear() === parseInt(selectedYear);
+                    });
+                }
+
+                // Sort filtered certificates to show newest first
+                filteredCerts.sort((a, b) => b.id.localeCompare(a.id));
+
+                if (filteredCerts.length === 0) {
+                    certificateList.innerHTML = '<p style="text-align: center; width: 100%; grid-column: 1/-1;">ไม่พบข้อมูลเกียรติบัตร</p>';
+                    return;
+                }
+
+                filteredCerts.forEach((cert, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'certificate-card';
+                    card.setAttribute('data-aos', 'fade-up');
+                    card.setAttribute('data-aos-delay', index * 50);
+                    
+                    card.innerHTML = `
+                        <img src="${cert.imageData || 'https://via.placeholder.com/400x200.png?text=No+Image'}" alt="${cert.name}" onclick="viewImage('${cert.imageData || ''}', '${cert.name}')">
+                        <div class="certificate-card-body">
+                            <h3>${cert.name}</h3>
+                            <p><i class="fas fa-building"></i> ${cert.agency}</p>
+                            <p><i class="fas fa-calendar"></i> ${formatDate(cert.dateFrom)} - ${formatDate(cert.dateTo)}</p>
+                            <p><i class="fas fa-clock"></i> ${cert.hours} ชั่วโมง</p>
+                            <div class="card-actions">
+                                <button class="btn btn-secondary" onclick="editCertificate('${cert.id}')"><i class="fas fa-edit"></i> แก้ไข</button>
+                                <button class="btn btn-danger" onclick="deleteCertificate('${cert.id}')"><i class="fas fa-trash"></i> ลบ</button>
+                                <button class="btn" onclick="downloadImage('${cert.imageData || ''}', '${cert.name}.png')"><i class="fas fa-download"></i> ดาวน์โหลด</button>
+                            </div>
+                        </div>
+                    `;
+                    certificateList.appendChild(card);
+                });
+                AOS.refresh();
+            }
+
+            function updateDashboard() {
+                const selectedValue = dashboardYearSelect.value;
+                
+                let totalHours = 0;
+                let totalCerts = certificates.length;
+
+                let yearHours = 0;
+                let yearCerts = 0;
+
+                certificates.forEach(cert => {
+                    totalHours += parseInt(cert.hours, 10);
+                });
+
+                if (selectedValue === 'all') {
+                    yearHours = totalHours;
+                    yearCerts = totalCerts;
+                } else {
+                    const selectedYear = parseInt(selectedValue);
+                    certificates.forEach(cert => {
+                        if (cert.dateFrom && new Date(cert.dateFrom).getFullYear() === selectedYear) {
+                            yearHours += parseInt(cert.hours, 10);
+                            yearCerts++;
+                        }
+                    });
+                }
+
+                certThisYearEl.textContent = yearCerts;
+                hoursThisYearEl.textContent = yearHours;
+                certTotalEl.textContent = totalCerts;
+                hoursTotalEl.textContent = totalHours;
+            }
+
+            function formatDate(dateString) {
+                if (!dateString) return '-';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+            
+            function openModal(cert = null) {
+                modal.classList.add('show');
+                if (cert) {
+                    currentEditId = cert.id;
+                    modalTitle.textContent = 'แก้ไขเกียรติบัตร';
+                    document.getElementById('certName').value = cert.name;
+                    document.getElementById('agency').value = cert.agency;
+                    document.getElementById('dateFrom').value = cert.dateFrom;
+                    document.getElementById('dateTo').value = cert.dateTo;
+                    document.getElementById('hours').value = cert.hours;
+                    document.getElementById('details').value = cert.details;
+                    if (cert.imageData) {
+                        imagePreview.src = cert.imageData;
+                        imagePreview.style.display = 'block';
+                        uploadContent.style.display = 'none';
+                        btnRemoveImage.style.display = 'block';
+                    } else {
+                        resetFileUploadArea();
+                    }
+                } else {
+                    currentEditId = null;
+                    modalTitle.textContent = 'เพิ่มเกียรติบัตรใหม่';
+                    form.reset();
+                    resetFileUploadArea();
+                }
+            }
+
+            function closeModal() {
+                modal.classList.remove('show');
+                form.reset();
+                currentEditId = null;
+                resetFileUploadArea();
+            }
+
+            function resetFileUploadArea() {
+                imageUpload.value = '';
+                imagePreview.src = '';
+                imagePreview.style.display = 'none';
+                uploadContent.style.display = 'block';
+                btnRemoveImage.style.display = 'none';
+                fileName.textContent = '';
+            }
+            
+            async function handleSave(e) {
+                e.preventDefault();
+                showLoading();
+
+                const fileInput = document.getElementById('imageUpload');
+                const reader = new FileReader();
+
+                reader.onload = async function(event) {
+                    const imageData = event.target.result;
+                    const existingCert = certificates.find(c => c.id === currentEditId);
+
+                    const newCertData = {
+                        name: document.getElementById('certName').value,
+                        agency: document.getElementById('agency').value,
+                        dateFrom: document.getElementById('dateFrom').value,
+                        dateTo: document.getElementById('dateTo').value,
+                        hours: document.getElementById('hours').value,
+                        details: document.getElementById('details').value,
+                        imageData: imageData || existingCert?.imageData || ''
+                    };
+
+                    try {
+                        if (currentEditId) {
+                            await db.collection('certificates').doc(currentEditId).update(newCertData);
+                            Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลเรียบร้อยแล้ว', 'success');
+                        } else {
+                            await db.collection('certificates').add(newCertData);
+                            Swal.fire('สำเร็จ!', 'เพิ่มเกียรติบัตรใหม่เรียบร้อยแล้ว', 'success');
+                        }
+                        
+                        await fetchCertificates(); // Re-fetch all data
+                        populateYearDropdown();
+                        renderCertificates(searchInput.value, dashboardYearSelect.value);
+                        updateDashboard();
+                        closeModal();
+                    } catch (error) {
+                        console.error("Error saving certificate: ", error);
+                        Swal.fire('ข้อผิดพลาด!', 'ไม่สามารถบันทึกข้อมูลได้ในขณะนี้', 'error');
+                    } finally {
+                        hideLoading();
+                    }
+                };
+
+                if (fileInput.files[0]) {
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    reader.onload({ target: { result: null } });
+                }
+            }
+
+            function showLoading() {
+                loadingOverlay.classList.add('show');
+            }
+
+            function hideLoading() {
+                loadingOverlay.classList.remove('show');
+            }
+
+            // --- Expose functions to global scope for onclick handlers ---
+            window.editCertificate = function(id) {
+                const cert = certificates.find(c => c.id === id);
+                if (cert) {
+                    openModal(cert);
+                }
+            };
+
+            window.deleteCertificate = function(id) {
+                Swal.fire({
+                    title: 'คุณแน่ใจหรือไม่?',
+                    text: "คุณจะไม่สามารถกู้คืนข้อมูลนี้ได้!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'ใช่, ลบเลย!',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        showLoading();
+                        try {
+                            await db.collection('certificates').doc(id).delete();
+                            Swal.fire('ลบแล้ว!', 'ข้อมูลเกียรติบัตรของคุณถูกลบไปแล้ว.', 'success');
+                            await fetchCertificates();
+                            populateYearDropdown();
+                            renderCertificates(searchInput.value, dashboardYearSelect.value);
+                            updateDashboard();
+                        } catch (error) {
+                            console.error("Error deleting certificate: ", error);
+                            Swal.fire('ข้อผิดพลาด!', 'ไม่สามารถลบข้อมูลได้ในขณะนี้', 'error');
+                        } finally {
+                            hideLoading();
+                        }
+                    }
+                });
+            };
+            
+            window.viewImage = function(imageData, name) {
+                if (!imageData) {
+                    Swal.fire('ไม่มีรูปภาพ', 'ไม่พบรูปภาพของเกียรติบัตรนี้', 'info');
+                    return;
+                }
+                Swal.fire({
+                    title: name,
+                    imageUrl: imageData,
+                    imageAlt: name,
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                });
+            };
+
+            window.downloadImage = function(imageData, filename) {
+                 if (!imageData) {
+                    Swal.fire('ไม่มีรูปภาพ', 'ไม่สามารถดาวน์โหลดรูปภาพได้', 'warning');
+                    return;
+                }
+                const a = document.createElement('a');
+                a.href = imageData;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            // --- File Upload Event Listeners ---
+            customFileUpload.addEventListener('click', () => {
+                imageUpload.click();
+            });
+
+            customFileUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                customFileUpload.classList.add('drag-over');
+            });
+
+            customFileUpload.addEventListener('dragleave', () => {
+                customFileUpload.classList.remove('drag-over');
+            });
+
+            customFileUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                customFileUpload.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    imageUpload.files = files;
+                    handleFileSelect(files[0]);
+                }
+            });
+
+            imageUpload.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            btnRemoveImage.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetFileUploadArea();
+            });
+
+            function handleFileSelect(file) {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        uploadContent.style.display = 'none';
+                        btnRemoveImage.style.display = 'block';
+                        fileName.textContent = file.name;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    Swal.fire('ข้อผิดพลาด!', 'กรุณาเลือกไฟล์รูปภาพเท่านั้น (PNG, JPG)', 'error');
+                }
+            }
+
+            // --- Event Listeners ---
+            addBtn.onclick = () => openModal();
+            closeBtn.onclick = closeModal;
+            cancelBtn.onclick = closeModal;
+            window.onclick = (event) => { if (event.target === modal) closeModal(); };
+            form.onsubmit = handleSave;
+            searchInput.oninput = (e) => renderCertificates(e.target.value, dashboardYearSelect.value);
+            dashboardYearSelect.onchange = () => {
+                updateDashboard();
+                renderCertificates(searchInput.value, dashboardYearSelect.value);
+            };
+
+            // --- Initial Load ---
+            await fetchCertificates();
+            populateYearDropdown();
+            renderCertificates('', dashboardYearSelect.value);
+            updateDashboard();
+        });
+    </script>
+</body>
+</html>
